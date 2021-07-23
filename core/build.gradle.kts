@@ -4,4 +4,19 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven {
+        name = "dv8tion"
+        url = uri("https://m2.dv8tion.net/releases")
+    }
+}
+
+dependencies {
+    // Discord API - JDA is the only Java API that supports audio receive
+    implementation("net.dv8tion:JDA:4.3.0_298")
+
+    // Opus Audio Codec Decoder
+    implementation("me.walkerknapp:rapidopus:2.0.0")
+
+    // NDI API
+    implementation("me.walkerknapp:devolay:2.0.2")
 }
