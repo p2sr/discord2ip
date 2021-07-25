@@ -19,4 +19,7 @@ dependencies {
 
     // NDI API
     implementation("me.walkerknapp:devolay:2.0.2")
+
+    // Fast collections library
+    implementation("it.unimi.dsi:fastutil:8.5.4")
 }

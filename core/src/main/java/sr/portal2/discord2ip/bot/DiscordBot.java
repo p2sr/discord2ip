@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import sr.portal2.discord2ip.buffer.AudioBuffer;
 
 import javax.security.auth.login.LoginException;
 import java.util.Arrays;
@@ -20,16 +21,16 @@ public class DiscordBot {
 
     private AudioManager activeAudioManager;
 
-    public DiscordBot(String token, BotEventListener eventListener) throws LoginException, InterruptedException {
+    public DiscordBot(String token, AudioBuffer audioBuffer, BotEventListener eventListener) throws LoginException, InterruptedException {
         this.discordClient = JDABuilder.create(token, Arrays.asList(GatewayIntent.values())).build().awaitReady();
         this.eventListener = eventListener;
 
         this.silenceSendHandler = new SilenceSendHandler();
-        this.audioReceiveHandler = new VoiceAudioReceiveHandler();
+        this.audioReceiveHandler = new VoiceAudioReceiveHandler(audioBuffer);
     }
 
-    public DiscordBot(String token) throws LoginException, InterruptedException {
-        this(token, new AbstractBotEventListener() { /* no-op */ });
+    public DiscordBot(String token, AudioBuffer audioBuffer) throws LoginException, InterruptedException {
+        this(token, audioBuffer, new AbstractBotEventListener() { /* no-op */ });
     }
 
     public boolean joinVoiceChannel(long channelId) {

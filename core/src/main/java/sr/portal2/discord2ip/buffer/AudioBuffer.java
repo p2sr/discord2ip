@@ -51,4 +51,8 @@ public class AudioBuffer {
         this.currentTailTimestamp += OpusPacket.OPUS_FRAME_TIME_AMOUNT;
         this.queuedFrames.addFirst(this.queuedFrames.pollLast());
     }
+
+    public int getYoungestTimestamp() {
+        return this.currentTailTimestamp;
+    }
 }
