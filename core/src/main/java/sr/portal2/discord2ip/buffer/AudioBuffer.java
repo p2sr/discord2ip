@@ -18,6 +18,7 @@ public class AudioBuffer {
     private final LinkedList<AudioFrame> queuedFrames;
 
     private int currentTailTimestamp;
+    private int currentHeadTimestamp;
 
     public AudioBuffer(int frameCount) {
         this.frameCount = frameCount;
@@ -26,6 +27,9 @@ public class AudioBuffer {
         for (int i = 0; i < frameCount; i++) {
             this.queuedFrames.add(new AudioFrame());
         }
+
+        this.currentTailTimestamp = 0;
+        this.currentHeadTimestamp = (frameCount - 1) * OpusPacket.OPUS_FRAME_TIME_AMOUNT;
     }
 
     public AudioFrame getFrameAtTimestamp(int timestamp) {
@@ -48,11 +52,20 @@ public class AudioBuffer {
     }
 
     public void recycleOldestFrame() {
+        AudioFrame lastFrame = this.queuedFrames.pollLast();
+        assert lastFrame != null;
+        lastFrame.reset();
+
         this.currentTailTimestamp += OpusPacket.OPUS_FRAME_TIME_AMOUNT;
-        this.queuedFrames.addFirst(this.queuedFrames.pollLast());
+        this.currentHeadTimestamp += OpusPacket.OPUS_FRAME_TIME_AMOUNT;
+        this.queuedFrames.addFirst(lastFrame);
     }
 
     public int getYoungestTimestamp() {
         return this.currentTailTimestamp;
+    }
+
+    public int getOldestTimestamp() {
+        return this.currentHeadTimestamp;
     }
 }
