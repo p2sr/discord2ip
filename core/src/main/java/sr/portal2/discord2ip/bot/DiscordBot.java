@@ -40,11 +40,7 @@ public class DiscordBot {
         }
 
         // If we're already connected to a channel, disconnect from it
-        if (this.activeAudioManager != null) {
-            if (this.activeAudioManager.getConnectionStatus() != ConnectionStatus.NOT_CONNECTED) {
-                this.activeAudioManager.closeAudioConnection();
-            }
-        }
+        this.leaveVoiceChannel();
 
         // Join the new voice channel
         this.activeAudioManager = channel.getGuild().getAudioManager();
@@ -53,5 +49,13 @@ public class DiscordBot {
         this.activeAudioManager.openAudioConnection(channel);
 
         return true;
+    }
+
+    public void leaveVoiceChannel() {
+        if (this.activeAudioManager != null) {
+            if (this.activeAudioManager.getConnectionStatus() != ConnectionStatus.NOT_CONNECTED) {
+                this.activeAudioManager.closeAudioConnection();
+            }
+        }
     }
 }
