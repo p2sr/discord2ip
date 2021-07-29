@@ -29,19 +29,18 @@ public class NDIAudioSink implements Runnable {
     public void run() {
         long nextFrameNanos = System.nanoTime();
         do {
+            nextFrameNanos += OpusPacket.OPUS_FRAME_TIME_AMOUNT * 1000000L;
+            while (nextFrameNanos > System.nanoTime()) {
+                Thread.onSpinWait();
+            }
+
             synchronized (this.audioBuffer) {
                 AudioFrame frame = this.audioBuffer.getOldestFrame();
-                frame.devolayFrame.setTimecode(this.audioBuffer.getYoungestTimestamp() * 10L);
+                frame.devolayFrame.setTimecode(this.audioBuffer.getOldestTimestamp() * 10000L);
 
                 this.devolaySender.sendAudioFrameInterleaved32f(frame.devolayFrame);
 
                 this.audioBuffer.recycleOldestFrame();
-            }
-
-            nextFrameNanos += OpusPacket.OPUS_FRAME_TIME_AMOUNT * 1000L;
-
-            while (nextFrameNanos > System.nanoTime()) {
-                Thread.onSpinWait();
             }
         } while(!stopped.get());
     }

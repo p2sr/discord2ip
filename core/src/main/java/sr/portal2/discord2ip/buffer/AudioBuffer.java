@@ -34,12 +34,12 @@ public class AudioBuffer {
 
     public AudioFrame getFrameAtTimestamp(int timestamp) {
         if (timestamp < this.currentTailTimestamp) {
-            System.err.println("Couldn't get audio frame at " + timestamp + " because the buffer has already passed this timestamp.");
+            System.err.println("Couldn't get audio frame at " + timestamp + " because the buffer has already passed this timestamp (tail=" + this.currentTailTimestamp + ")");
             return null;
         }
 
-        if (timestamp >= this.currentTailTimestamp + (this.frameCount * OpusPacket.OPUS_FRAME_TIME_AMOUNT)) {
-            System.err.println("Couldn't get audio frame at " + timestamp + " because the buffer hasn't reached this timestamp");
+        if (timestamp > this.currentHeadTimestamp) {
+            System.err.println("Couldn't get audio frame at " + timestamp + " because the buffer hasn't reached this timestamp (head=" + this.currentHeadTimestamp + ")");
             return null;
         }
 
@@ -48,24 +48,23 @@ public class AudioBuffer {
     }
 
     public AudioFrame getOldestFrame() {
-        return this.queuedFrames.getLast();
+        return this.queuedFrames.getFirst();
     }
 
     public void recycleOldestFrame() {
-        AudioFrame lastFrame = this.queuedFrames.pollLast();
-        assert lastFrame != null;
+        AudioFrame lastFrame = this.queuedFrames.pop();
         lastFrame.reset();
 
         this.currentTailTimestamp += OpusPacket.OPUS_FRAME_TIME_AMOUNT;
         this.currentHeadTimestamp += OpusPacket.OPUS_FRAME_TIME_AMOUNT;
-        this.queuedFrames.addFirst(lastFrame);
+        this.queuedFrames.addLast(lastFrame);
     }
 
-    public int getYoungestTimestamp() {
-        return this.currentTailTimestamp;
+    public int getNewPlacementTimestamp() {
+        return this.currentTailTimestamp + ((this.frameCount/2) * OpusPacket.OPUS_FRAME_TIME_AMOUNT);
     }
 
     public int getOldestTimestamp() {
-        return this.currentHeadTimestamp;
+        return this.currentTailTimestamp;
     }
 }

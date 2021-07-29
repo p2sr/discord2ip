@@ -47,7 +47,7 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
         synchronized (audioBuffer) {
             // Try to convert the local packet timestamp (in samples) into the global buffer timestamp (in milliseconds)
             int userTimestampOffset = this.userTimestampOffsets
-                    .computeIfAbsent(packet.getSSRC(), ssrc -> packet.getTimestamp() - (SAMPLES_PER_MS * audioBuffer.getYoungestTimestamp()));
+                    .computeIfAbsent(packet.getSSRC(), ssrc -> packet.getTimestamp() - (SAMPLES_PER_MS * audioBuffer.getNewPlacementTimestamp()));
             int packetTimestampRelativeToBuffer = (packet.getTimestamp() - userTimestampOffset) / 48;
 
             AudioFrame targetAudioFrame = this.audioBuffer.getFrameAtTimestamp(packetTimestampRelativeToBuffer);
@@ -56,7 +56,7 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
                 System.err.println("Frame from user " + packet.getUserId() + " fell out of range of the audio buffer.");
 
                 // Recalculate this user's timestamp offset so that at least this frame is guaranteed to be buffered
-                userTimestampOffset = packet.getTimestamp() - (SAMPLES_PER_MS * audioBuffer.getYoungestTimestamp());
+                userTimestampOffset = packet.getTimestamp() - (SAMPLES_PER_MS * audioBuffer.getNewPlacementTimestamp());
                 this.userTimestampOffsets.put(packet.getSSRC(), userTimestampOffset);
                 packetTimestampRelativeToBuffer = (packet.getTimestamp() - userTimestampOffset) / 48;
 
