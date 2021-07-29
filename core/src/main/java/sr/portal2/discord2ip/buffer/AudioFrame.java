@@ -6,6 +6,7 @@ import me.walkerknapp.devolay.DevolayAudioFrameInterleaved32f;
 import net.dv8tion.jda.api.audio.OpusPacket;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class AudioFrame {
     private static final ByteBuffer zeroingBuffer = ByteBuffer.allocateDirect(OpusPacket.OPUS_FRAME_SIZE * OpusPacket.OPUS_CHANNEL_COUNT * Float.BYTES);
@@ -17,6 +18,7 @@ public class AudioFrame {
 
     public AudioFrame() {
         this.combinationBuffer = ByteBuffer.allocateDirect(OpusPacket.OPUS_FRAME_SIZE * OpusPacket.OPUS_CHANNEL_COUNT * Float.BYTES);
+        this.combinationBuffer.order(ByteOrder.LITTLE_ENDIAN);
         this.usersSpeaking = new LongOpenHashSet();
 
         this.devolayFrame = new DevolayAudioFrameInterleaved32f();

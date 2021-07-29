@@ -1,9 +1,6 @@
 package sr.portal2.discord2ip.bot;
 
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
-import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.*;
 import me.walkerknapp.rapidopus.OpusDecoder;
 import net.dv8tion.jda.api.audio.AudioReceiveHandler;
 import net.dv8tion.jda.api.audio.OpusPacket;
@@ -37,11 +34,13 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
     @Override
     public void handleEncodedAudio(@NotNull OpusPacket packet) {
         // Directly deal with opus packets because we use a faster decoder than the default JDA implementation.
-        OpusDecoder userDecoder = this.opusDecoders
-                .computeIfAbsent(packet.getSSRC(), ssrc -> new OpusDecoder(OpusPacket.OPUS_SAMPLE_RATE, OpusPacket.OPUS_CHANNEL_COUNT));
+
+        byte[] opusData = packet.getOpusAudio();
 
         // Decode a frame of the user's audio into a temporary buffer
-        userDecoder.decodeFloat(packet.getOpusAudio(), this.temporaryReadBuffer, OpusPacket.OPUS_FRAME_SIZE, 0);
+        this.opusDecoders
+                .computeIfAbsent(packet.getSSRC(), ssrc -> new OpusDecoder(OpusPacket.OPUS_SAMPLE_RATE, OpusPacket.OPUS_CHANNEL_COUNT))
+                .decodeFloat(opusData, this.temporaryReadBuffer, OpusPacket.OPUS_FRAME_SIZE, 0);
 
         // Synchronize any calls that could be influenced by the output thread popping/adding frames from the buffer
         synchronized (audioBuffer) {
@@ -76,6 +75,11 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
             }
 
             // Indicate that this user is talking on this frame
+            if (targetAudioFrame.usersSpeaking.contains(packet.getUserId())) {
+                System.err.println("Got 2 packets for user " + packet.getUserId() + " and timestamp " + packet.getTimestamp() +
+                        " (this is expected after a \"fell out of range\" message).");
+            }
+
             targetAudioFrame.usersSpeaking.add(packet.getUserId());
         }
     }
