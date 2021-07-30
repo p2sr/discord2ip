@@ -1,0 +1,40 @@
+Configuration:
+  status: debug
+  Appenders:
+    Console:
+      name: Console
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+    File:
+      -
+        name: Info_Appender
+        fileName: log/info.log
+        PatternLayout:
+          Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+      -
+        name: Debug_Appender
+        fileName: log/debug.log
+        PatternLayout:
+         Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+      -
+        name: Trace_Appender
+        fileName: log/trace.log
+        PatternLayout:
+         Pattern: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+  Loggers:
+    Root:
+      level: trace
+      AppenderRef:
+        -
+          ref: Console
+          level: debug
+        -
+          ref: Info_Appender
+          level: info
+        -
+          ref: Debug_Appender
+          level: debug
+        -
+          ref: Trace_Appender
+          level: trace

@@ -92,6 +92,18 @@ public class DiscordBot extends ListenerAdapter {
                 .collect(LongOpenHashSet::new, LongOpenHashSet::add, LongOpenHashSet::addAll);
     }
 
+    public String getName() {
+        return this.discordClient.getSelfUser().getName();
+    }
+
+    public String getAvatarUrl() {
+        return this.discordClient.getSelfUser().getAvatarUrl();
+    }
+
+    public String getState() {
+        return this.discordClient.getStatus() == JDA.Status.CONNECTED ? "online" : "disconnected";
+    }
+
     @Override
     public void onReady(@NotNull ReadyEvent event) {
         // When the bot starts, update with all visible users
