@@ -12,7 +12,9 @@ repositories {
 
 dependencies {
     // Discord API - JDA is the only Java API that supports audio receive
-    implementation("net.dv8tion:JDA:4.3.0_298")
+    implementation("net.dv8tion:JDA:4.3.0_298") {
+        exclude(module = "opus-java")
+    }
 
     // Opus Audio Codec Decoder
     implementation("me.walkerknapp:rapidopus:2.0.0")
