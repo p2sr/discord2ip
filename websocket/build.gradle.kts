@@ -1,5 +1,10 @@
 plugins {
     java
+    application
+}
+
+application {
+    mainClass.set("sr.portal2.discord2ip.Discord2Ip")
 }
 
 repositories {

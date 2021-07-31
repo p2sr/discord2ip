@@ -8,7 +8,6 @@ import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.VoiceChannel;
-import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ReconnectedEvent;
 import net.dv8tion.jda.api.events.channel.voice.VoiceChannelCreateEvent;
 import net.dv8tion.jda.api.events.channel.voice.VoiceChannelDeleteEvent;
@@ -119,6 +118,7 @@ public class DiscordBot extends ListenerAdapter {
         return this.discordClient.getGuilds().stream()
                 .flatMap(guild -> guild.getVoiceStates().stream())
                 .filter(voiceState -> voiceState.getMember().getId().equals(userId))
+                .filter(GuildVoiceState::inVoiceChannel)
                 .map(voiceState -> voiceState.getChannel().getId())
                 .findAny().orElse(null);
     }
@@ -131,13 +131,6 @@ public class DiscordBot extends ListenerAdapter {
     public String getChannelServer(long channelID) {
         VoiceChannel channel = this.discordClient.getVoiceChannelById(channelID);
         return channel == null ? "" : channel.getGuild().getName();
-    }
-
-    @Override
-    public void onReady(@NotNull ReadyEvent event) {
-        // When the bot starts, update with all visible users
-        this.getVisibleUsers().forEach(this.eventListener::onNewVisibleUser);
-        this.eventListener.onUserInfoUpdate();
     }
 
     @Override
@@ -168,6 +161,8 @@ public class DiscordBot extends ListenerAdapter {
     @Override
     public void onGuildVoiceUpdate(@NotNull GuildVoiceUpdateEvent event) {
         // Trigger a user information refresh when a user moves
+        this.eventListener.onNewVisibleUser(event.getMember().getIdLong());
+
         // TODO: If this ends up being a heavy operation, we could only refresh relevant users
         this.eventListener.onUserInfoUpdate();
     }

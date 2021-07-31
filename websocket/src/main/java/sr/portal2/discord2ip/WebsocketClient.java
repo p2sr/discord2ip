@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -65,11 +66,11 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
     private void saveUsers() throws IOException {
         Files.deleteIfExists(usersTmpPath);
 
-        try (OutputStream fos = Files.newOutputStream(usersPath)) {
+        try (OutputStream fos = Files.newOutputStream(usersTmpPath)) {
             dslJson.serialize(this.exposedUsers, fos);
         }
 
-        Files.copy(usersTmpPath, usersPath);
+        Files.copy(usersTmpPath, usersPath, StandardCopyOption.REPLACE_EXISTING);
         Files.deleteIfExists(usersTmpPath);
     }
 
