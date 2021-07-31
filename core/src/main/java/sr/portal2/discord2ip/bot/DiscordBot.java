@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.events.ReadyEvent;
 import net.dv8tion.jda.api.events.ReconnectedEvent;
@@ -102,6 +103,34 @@ public class DiscordBot extends ListenerAdapter {
 
     public String getState() {
         return this.discordClient.getStatus() == JDA.Status.CONNECTED ? "online" : "disconnected";
+    }
+
+    public String getUserName(String userId) {
+        User user = this.discordClient.getUserById(userId);
+        return user == null ? "<@" + userId + ">" : user.getName();
+    }
+
+    public String getUserAvatarUrl(String userId) {
+        User user = this.discordClient.getUserById(userId);
+        return user == null ? "" : user.getAvatarUrl();
+    }
+
+    public String getUserChannel(String userId) {
+        return this.discordClient.getGuilds().stream()
+                .flatMap(guild -> guild.getVoiceStates().stream())
+                .filter(voiceState -> voiceState.getMember().getId().equals(userId))
+                .map(voiceState -> voiceState.getChannel().getId())
+                .findAny().orElse(null);
+    }
+
+    public String getChannelName(long channelId) {
+        VoiceChannel channel = this.discordClient.getVoiceChannelById(channelId);
+        return channel == null ? "<#" + channelId + ">" : channel.getName();
+    }
+
+    public String getChannelServer(long channelID) {
+        VoiceChannel channel = this.discordClient.getVoiceChannelById(channelID);
+        return channel == null ? "" : channel.getGuild().getName();
     }
 
     @Override

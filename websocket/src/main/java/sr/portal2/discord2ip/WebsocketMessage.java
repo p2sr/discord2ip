@@ -57,7 +57,6 @@ public class WebsocketMessage {
     public static class User {
 
         public User() {
-
         }
 
         public User(String id) {
@@ -78,6 +77,19 @@ public class WebsocketMessage {
 
         @JsonAttribute
         public String channel;
+
+        @Override
+        public int hashCode() {
+            return id.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof User)) {
+                return false;
+            }
+            return ((User)obj).id.equals(this.id);
+        }
     }
 
     @CompiledJson

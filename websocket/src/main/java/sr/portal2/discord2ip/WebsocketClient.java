@@ -3,6 +3,8 @@ package sr.portal2.discord2ip;
 import com.dslplatform.json.DslJson;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
@@ -19,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class WebsocketClient extends WebSocketListener implements BotEventListener {
     private static final Logger logger = LoggerFactory.getLogger(WebsocketClient.class);
@@ -29,7 +32,7 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
     private final DiscordBot discordBot;
     private final DslJson<Object> dslJson;
 
-    private final List<WebsocketMessage.User> exposedUsers;
+    private final ObjectSet<WebsocketMessage.User> exposedUsers;
 
     public final CompletableFuture<Void> openFuture = new CompletableFuture<>();
     public final CompletableFuture<Void> closeFuture = new CompletableFuture<>();
@@ -41,7 +44,7 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
 
         this.dslJson = new DslJson<>();
 
-        this.exposedUsers = new ObjectArrayList<>();
+        this.exposedUsers = new ObjectOpenHashSet<>();
     }
 
     private void loadUsers() throws IOException {
@@ -108,14 +111,44 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
 
     @Override
     public void onNewVisibleUser(long userId) {
+        this.exposedUsers.add(new WebsocketMessage.User(String.valueOf(userId)));
     }
 
     @Override
     public void onUserInfoUpdate() {
+        for (WebsocketMessage.User user : this.exposedUsers) {
+            user.name = this.discordBot.getUserName(user.id);
+            user.avatar = this.discordBot.getUserAvatarUrl(user.id);
+            user.channel = this.discordBot.getUserChannel(user.id);
+        }
+
+        try {
+            this.saveUsers();
+        } catch (IOException e) {
+            logger.error("Failed to save users", e);
+        }
+
+        WebsocketMessage message = new WebsocketMessage();
+        message.type = WebsocketMessage.UPDATE_USERS_TYPE;
+        message.users = this.exposedUsers;
+        try {
+            this.currentWsConnection.send(message.serialize(dslJson));
+        } catch (IOException e) {
+            logger.error("Failed to serialize message", e);
+        }
     }
 
     @Override
     public void onAvailableChannelsUpdate(LongSet channelIds) {
-
+        WebsocketMessage message = new WebsocketMessage();
+        message.type = WebsocketMessage.UPDATE_CHANNELS_TYPE;
+        message.channels = channelIds.longStream()
+                .mapToObj(id -> new WebsocketMessage.Channel(String.valueOf(id), this.discordBot.getChannelName(id), this.discordBot.getChannelServer(id)))
+                .collect(Collectors.toList());
+        try {
+            this.currentWsConnection.send(message.serialize(dslJson));
+        } catch (IOException e) {
+            logger.error("Failed to serialize message", e);
+        }
     }
 }
