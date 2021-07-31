@@ -134,7 +134,6 @@ public class WebsocketMessage {
     public String serialize(DslJson<?> dslJson) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             dslJson.serialize(this, baos);
-            String serializationResult = baos.toString();
             return baos.toString();
         }
     }

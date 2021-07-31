@@ -32,7 +32,7 @@ public class Discord2Ip {
         while (true) {
             try {
                 Request wsOpenRequest = new Request.Builder()
-                        .url(args[0])
+                        .url(serverUrl)
                         .build();
 
                 WebsocketClient client = new WebsocketClient(bot);

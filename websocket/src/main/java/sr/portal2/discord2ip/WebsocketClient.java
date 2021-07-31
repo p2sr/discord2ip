@@ -2,7 +2,6 @@ package sr.portal2.discord2ip;
 
 import com.dslplatform.json.DslJson;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import okhttp3.Response;
