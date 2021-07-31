@@ -105,6 +105,35 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
     }
 
     @Override
+    public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
+        try {
+            byte[] data = text.getBytes();
+            WebsocketMessage message = dslJson.deserialize(WebsocketMessage.class, data, data.length);
+
+            if (message == null) {
+                logger.error("Failed to deserialize message, DSLJson returned null.");
+                return;
+            }
+
+            switch (message.type) {
+                case WebsocketMessage.UPDATE_CURRENT_CHANNEL_TYPE:
+                    if (message.currentChannel == null) {
+                        logger.info("Leaving vc...");
+                        this.discordBot.leaveVoiceChannel();
+                    } else {
+                        logger.info("Joining vc {}", message.currentChannel);
+                        this.discordBot.joinVoiceChannel(Long.parseLong(message.currentChannel));
+                    }
+                    break;
+                default:
+                    logger.error("Unknown message type: {}", message.type);
+            }
+        } catch (IOException e) {
+            logger.error("Failed to deserialize message", e);
+        }
+    }
+
+    @Override
     public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
         closeFuture.complete(null);
     }
