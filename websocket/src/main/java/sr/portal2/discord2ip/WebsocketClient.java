@@ -1,7 +1,10 @@
 package sr.portal2.discord2ip;
 
 import com.dslplatform.json.DslJson;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import okhttp3.Response;
@@ -42,7 +45,7 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
     public WebsocketClient(DiscordBot bot) {
         this.discordBot = bot;
 
-        this.dslJson = new DslJson<>();
+        this.dslJson = new DslJson<>(new DslJson.Settings<>().includeServiceLoader());
 
         this.exposedUsers = new ObjectOpenHashSet<>();
     }
@@ -160,6 +163,24 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
         WebsocketMessage message = new WebsocketMessage();
         message.type = WebsocketMessage.UPDATE_USERS_TYPE;
         message.users = this.exposedUsers;
+        try {
+            this.currentWsConnection.send(message.serialize(dslJson));
+        } catch (IOException e) {
+            logger.error("Failed to serialize message", e);
+        }
+    }
+
+    @Override
+    public void onUserVolumeUpdate(LongList userIds, DoubleList leftVolumes, DoubleList rightVolumes) {
+        ObjectArrayList<WebsocketMessage.VolumeUpdate> volumeUpdates = new ObjectArrayList<>(userIds.size());
+
+        for (int i = 0; i < userIds.size(); i++) {
+            volumeUpdates.add(i, new WebsocketMessage.VolumeUpdate(String.valueOf(userIds.getLong(i)), leftVolumes.getDouble(i), rightVolumes.getDouble(i)));
+        }
+
+        WebsocketMessage message = new WebsocketMessage();
+        message.type = WebsocketMessage.UPDATE_VOLUMES;
+        message.volumeUpdates = volumeUpdates;
         try {
             this.currentWsConnection.send(message.serialize(dslJson));
         } catch (IOException e) {

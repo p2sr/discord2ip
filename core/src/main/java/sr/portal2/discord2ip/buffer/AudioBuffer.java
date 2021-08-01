@@ -1,7 +1,7 @@
 package sr.portal2.discord2ip.buffer;
 
 import net.dv8tion.jda.api.audio.OpusPacket;
-import sr.portal2.discord2ip.NDIAudioSink;
+import sr.portal2.discord2ip.output.NDIAudioSink;
 import sr.portal2.discord2ip.bot.DiscordBot;
 
 import java.util.LinkedList;

@@ -32,9 +32,7 @@ dependencies {
     annotationProcessor("com.dslplatform:dsl-json-java8:1.9.8")
 
     // Discord API - JDA is the only Java API that supports audio receive
-    implementation("net.dv8tion:JDA:4.3.0_298") {
-        exclude(module = "opus-java")
-    }
+    implementation("net.dv8tion:JDA:4.3.0_298")
 
     // Fast collections library
     implementation("it.unimi.dsi:fastutil:8.5.4")

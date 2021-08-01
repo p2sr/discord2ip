@@ -1,4 +1,4 @@
-package sr.portal2.discord2ip;
+package sr.portal2.discord2ip.output;
 
 import me.walkerknapp.devolay.DevolaySender;
 import net.dv8tion.jda.api.audio.OpusPacket;

@@ -1,5 +1,11 @@
 package sr.portal2.discord2ip.bot;
 
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.floats.FloatArrayList;
+import it.unimi.dsi.fastutil.floats.FloatList;
+import it.unimi.dsi.fastutil.longs.LongImmutableList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.dv8tion.jda.api.JDA;
@@ -21,6 +27,8 @@ import sr.portal2.discord2ip.buffer.AudioBuffer;
 
 import javax.security.auth.login.LoginException;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class DiscordBot extends ListenerAdapter {
 
@@ -39,6 +47,37 @@ public class DiscordBot extends ListenerAdapter {
 
         this.silenceSendHandler = new SilenceSendHandler();
         this.audioReceiveHandler = new VoiceAudioReceiveHandler(audioBuffer);
+
+        // In a schedule at 30hz, send the latest volume information.
+        Executors.newSingleThreadScheduledExecutor()
+                .scheduleWithFixedDelay(() -> {
+                    try {
+                        if (this.activeAudioManager == null || this.activeAudioManager.getConnectedChannel() == null) {
+                            return;
+                        }
+
+                        LongOpenHashSet dedupeUsersList = this.discordClient.getGuilds().stream()
+                                .flatMap(guild -> guild.getVoiceStates().stream())
+                                .filter(GuildVoiceState::inVoiceChannel)
+                                .filter(state -> state.getChannel().getIdLong() == this.activeAudioManager.getConnectedChannel().getIdLong())
+                                .filter(state -> !(state.getMember().getUser().getIdLong() == this.discordClient.getSelfUser().getIdLong()))
+                                .mapToLong(state -> state.getMember().getIdLong())
+                                .collect(LongOpenHashSet::new, LongOpenHashSet::add, LongOpenHashSet::addAll);
+
+                        LongList orderedUserIds = new LongImmutableList(dedupeUsersList);
+                        DoubleList leftChannelVolumes = new DoubleArrayList(orderedUserIds.size());
+                        DoubleList rightChannelVolumes = new DoubleArrayList(orderedUserIds.size());
+
+                        for (long id : orderedUserIds) {
+                            leftChannelVolumes.add(this.audioReceiveHandler.getLeftVolume(id));
+                            rightChannelVolumes.add(this.audioReceiveHandler.getRightVolume(id));
+                        }
+
+                        this.eventListener.onUserVolumeUpdate(orderedUserIds, leftChannelVolumes, rightChannelVolumes);
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
+                }, 0L, 1000/30, TimeUnit.MILLISECONDS);
     }
 
     public DiscordBot(String token, AudioBuffer audioBuffer) throws LoginException, InterruptedException {

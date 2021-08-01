@@ -1,5 +1,7 @@
 package sr.portal2.discord2ip.bot;
 
+import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.longs.LongSet;
 
 public interface BotEventListener {
@@ -23,4 +25,9 @@ public interface BotEventListener {
      * Fired when some event happens that causes user information to change.
      */
     void onUserInfoUpdate();
+
+    /**
+     * Fired when user volumes update.
+     */
+    void onUserVolumeUpdate(LongList userIds, DoubleList leftVolumes, DoubleList rightVolumes);
 }

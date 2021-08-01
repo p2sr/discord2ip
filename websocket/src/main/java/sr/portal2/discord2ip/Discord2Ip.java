@@ -5,6 +5,7 @@ import okhttp3.Request;
 import okhttp3.WebSocket;
 import sr.portal2.discord2ip.bot.DiscordBot;
 import sr.portal2.discord2ip.buffer.AudioBuffer;
+import sr.portal2.discord2ip.output.NDIAudioSink;
 
 import javax.security.auth.login.LoginException;
 import java.util.concurrent.Executors;

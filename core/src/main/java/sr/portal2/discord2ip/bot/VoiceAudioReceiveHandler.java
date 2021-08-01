@@ -1,12 +1,15 @@
 package sr.portal2.discord2ip.bot;
 
 import it.unimi.dsi.fastutil.ints.*;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import me.walkerknapp.rapidopus.OpusDecoder;
 import net.dv8tion.jda.api.audio.AudioReceiveHandler;
 import net.dv8tion.jda.api.audio.OpusPacket;
 import org.jetbrains.annotations.NotNull;
 import sr.portal2.discord2ip.buffer.AudioBuffer;
 import sr.portal2.discord2ip.buffer.AudioFrame;
+import sr.portal2.discord2ip.output.VolumeMeter;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -15,9 +18,12 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
     private final AudioBuffer audioBuffer;
 
     private final Int2ObjectMap<OpusDecoder> opusDecoders;
+    private final Long2ObjectMap<VolumeMeter> volumeMetersLeft;
+    private final Long2ObjectMap<VolumeMeter> volumeMetersRight;
     private final Int2IntMap userTimestampOffsets;
 
     private static final int SAMPLES_PER_MS = OpusPacket.OPUS_FRAME_SIZE / OpusPacket.OPUS_FRAME_TIME_AMOUNT;
+    private static final int VOLUME_METER_SAMPLES = 250 * SAMPLES_PER_MS;
 
     private final ByteBuffer temporaryReadBuffer;
 
@@ -25,10 +31,22 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
         this.audioBuffer = audioBuffer;
 
         this.opusDecoders = new Int2ObjectOpenHashMap<>(100);
+        this.volumeMetersLeft = new Long2ObjectOpenHashMap<>(100);
+        this.volumeMetersRight = new Long2ObjectOpenHashMap<>(100);
         this.userTimestampOffsets = new Int2IntOpenHashMap(100);
 
         this.temporaryReadBuffer = ByteBuffer.allocateDirect(OpusPacket.OPUS_FRAME_SIZE * OpusPacket.OPUS_CHANNEL_COUNT * Float.BYTES);
         this.temporaryReadBuffer.order(ByteOrder.LITTLE_ENDIAN);
+    }
+
+    public double getLeftVolume(long id) {
+        VolumeMeter meter = this.volumeMetersLeft.get(id);
+        return meter == null ? 0 : meter.getVolume();
+    }
+
+    public double getRightVolume(long id) {
+        VolumeMeter meter = this.volumeMetersRight.get(id);
+        return meter == null ? 0 : meter.getVolume();
     }
 
     @Override
@@ -82,6 +100,12 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
 
             targetAudioFrame.usersSpeaking.add(packet.getUserId());
         }
+
+        // Track the volume of both channels of this user's audio
+        this.volumeMetersLeft.computeIfAbsent(packet.getUserId(), id -> new VolumeMeter(VOLUME_METER_SAMPLES))
+                .consumeSamples(this.temporaryReadBuffer, 0, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES);
+        this.volumeMetersRight.computeIfAbsent(packet.getUserId(), id -> new VolumeMeter(VOLUME_METER_SAMPLES))
+                .consumeSamples(this.temporaryReadBuffer, Float.BYTES, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES);
     }
 
     @Override
