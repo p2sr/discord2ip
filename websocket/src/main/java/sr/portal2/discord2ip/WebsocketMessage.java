@@ -73,7 +73,7 @@ public class WebsocketMessage {
         public String avatar;
 
         @JsonAttribute
-        public boolean muted = false;
+        public float volumeMultiplier = 1.0f;
 
         @JsonAttribute
         public String channel;

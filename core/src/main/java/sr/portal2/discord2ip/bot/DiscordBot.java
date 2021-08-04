@@ -119,7 +119,7 @@ public class DiscordBot extends ListenerAdapter {
         return this.discordClient.getGuilds().stream()
                 .flatMap(guild -> guild.getVoiceStates().stream())
                 .filter(GuildVoiceState::inVoiceChannel)
-                .filter(state -> !state.getMember().getUser().isBot())
+                .filter(state -> !(state.getMember().getUser().getIdLong() == this.discordClient.getSelfUser().getIdLong()))
                 .mapToLong(state -> state.getMember().getIdLong())
                 .collect(LongOpenHashSet::new, LongOpenHashSet::add, LongOpenHashSet::addAll);
     }
@@ -172,6 +172,10 @@ public class DiscordBot extends ListenerAdapter {
         return channel == null ? "" : channel.getGuild().getName();
     }
 
+    public void setVolumeMultiplier(long userId, float volMult) {
+        this.audioReceiveHandler.setVolumeMultiplier(userId, volMult);
+    }
+
     @Override
     public void onReconnected(@NotNull ReconnectedEvent event) {
         // When the bot reconnects from a disconnect, update with all visible users
@@ -200,9 +204,11 @@ public class DiscordBot extends ListenerAdapter {
     @Override
     public void onGuildVoiceUpdate(@NotNull GuildVoiceUpdateEvent event) {
         // Trigger a user information refresh when a user moves
-        this.eventListener.onNewVisibleUser(event.getMember().getIdLong());
+        if (event.getMember().getIdLong() != this.discordClient.getSelfUser().getIdLong()) {
+            this.eventListener.onNewVisibleUser(event.getMember().getIdLong());
 
-        // TODO: If this ends up being a heavy operation, we could only refresh relevant users
-        this.eventListener.onUserInfoUpdate();
+            // TODO: If this ends up being a heavy operation, we could only refresh relevant users
+            this.eventListener.onUserInfoUpdate();
+        }
     }
 }

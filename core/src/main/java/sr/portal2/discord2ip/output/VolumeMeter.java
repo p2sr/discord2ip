@@ -52,7 +52,7 @@ public class VolumeMeter {
         return Math.sqrt(volume);
     }
 
-    public void consumeSamples(ByteBuffer audioBuffer, int offset, int strideBytes, int sizeBytes) {
+    public void consumeSamples(ByteBuffer audioBuffer, int offset, int strideBytes, int sizeBytes, float multiplier) {
         readsSinceLastSample.set(0);
         synchronized (buffer) {
             this.zeroed = false;
@@ -62,7 +62,7 @@ public class VolumeMeter {
                 if (samples == bufferPointer) {
                     bufferPointer = 0;
                 }
-                buffer[bufferPointer++] = audioBuffer.getFloat(inputIndex);
+                buffer[bufferPointer++] = audioBuffer.getFloat(inputIndex) * multiplier;
                 inputIndex += strideBytes;
             }
         }

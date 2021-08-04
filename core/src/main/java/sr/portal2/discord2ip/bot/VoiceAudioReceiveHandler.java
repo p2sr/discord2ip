@@ -1,8 +1,7 @@
 package sr.portal2.discord2ip.bot;
 
 import it.unimi.dsi.fastutil.ints.*;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.*;
 import me.walkerknapp.rapidopus.OpusDecoder;
 import net.dv8tion.jda.api.audio.AudioReceiveHandler;
 import net.dv8tion.jda.api.audio.OpusPacket;
@@ -20,10 +19,11 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
     private final Int2ObjectMap<OpusDecoder> opusDecoders;
     private final Long2ObjectMap<VolumeMeter> volumeMetersLeft;
     private final Long2ObjectMap<VolumeMeter> volumeMetersRight;
+    private final Long2FloatMap volumeMultipliers;
     private final Int2IntMap userTimestampOffsets;
 
     private static final int SAMPLES_PER_MS = OpusPacket.OPUS_FRAME_SIZE / OpusPacket.OPUS_FRAME_TIME_AMOUNT;
-    private static final int VOLUME_METER_SAMPLES = 250 * SAMPLES_PER_MS;
+    private static final int VOLUME_METER_SAMPLES = 60 * SAMPLES_PER_MS;
 
     private final ByteBuffer temporaryReadBuffer;
 
@@ -33,6 +33,7 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
         this.opusDecoders = new Int2ObjectOpenHashMap<>(100);
         this.volumeMetersLeft = new Long2ObjectOpenHashMap<>(100);
         this.volumeMetersRight = new Long2ObjectOpenHashMap<>(100);
+        this.volumeMultipliers = new Long2FloatOpenHashMap(100);
         this.userTimestampOffsets = new Int2IntOpenHashMap(100);
 
         this.temporaryReadBuffer = ByteBuffer.allocateDirect(OpusPacket.OPUS_FRAME_SIZE * OpusPacket.OPUS_CHANNEL_COUNT * Float.BYTES);
@@ -49,6 +50,10 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
         return meter == null ? 0 : meter.getVolume();
     }
 
+    public void setVolumeMultiplier(long id, float mult) {
+        this.volumeMultipliers.put(id, mult);
+    }
+
     @Override
     public void handleEncodedAudio(@NotNull OpusPacket packet) {
         // Directly deal with opus packets because we use a faster decoder than the default JDA implementation.
@@ -59,6 +64,8 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
         this.opusDecoders
                 .computeIfAbsent(packet.getSSRC(), ssrc -> new OpusDecoder(OpusPacket.OPUS_SAMPLE_RATE, OpusPacket.OPUS_CHANNEL_COUNT))
                 .decodeFloat(opusData, this.temporaryReadBuffer, OpusPacket.OPUS_FRAME_SIZE, 0);
+
+        final float volumeMultiplier = this.volumeMultipliers.getOrDefault(packet.getUserId(), 1.0f);
 
         // Synchronize any calls that could be influenced by the output thread popping/adding frames from the buffer
         synchronized (audioBuffer) {
@@ -88,7 +95,7 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
             // Add this user's audio data to the combined buffer in the target frame
             final ByteBuffer combinationBuffer = targetAudioFrame.combinationBuffer;
             for (int i = 0; i < OpusPacket.OPUS_FRAME_SIZE * OpusPacket.OPUS_CHANNEL_COUNT * Float.BYTES; i += Float.BYTES) {
-                float sum = this.temporaryReadBuffer.getFloat(i) + combinationBuffer.getFloat(i);
+                float sum = (this.temporaryReadBuffer.getFloat(i) * volumeMultiplier) + combinationBuffer.getFloat(i);
                 combinationBuffer.putFloat(i, sum);
             }
 
@@ -103,9 +110,9 @@ public class VoiceAudioReceiveHandler implements AudioReceiveHandler {
 
         // Track the volume of both channels of this user's audio
         this.volumeMetersLeft.computeIfAbsent(packet.getUserId(), id -> new VolumeMeter(VOLUME_METER_SAMPLES))
-                .consumeSamples(this.temporaryReadBuffer, 0, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES);
+                .consumeSamples(this.temporaryReadBuffer, 0, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES, volumeMultiplier);
         this.volumeMetersRight.computeIfAbsent(packet.getUserId(), id -> new VolumeMeter(VOLUME_METER_SAMPLES))
-                .consumeSamples(this.temporaryReadBuffer, Float.BYTES, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES);
+                .consumeSamples(this.temporaryReadBuffer, Float.BYTES, Float.BYTES * OpusPacket.OPUS_CHANNEL_COUNT, OpusPacket.OPUS_FRAME_SIZE * Float.BYTES, volumeMultiplier);
     }
 
     @Override

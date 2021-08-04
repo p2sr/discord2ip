@@ -61,7 +61,9 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
                     }
                 }
 
-                // TODO: Indicate to the discordBot any volumes that are changed here.
+                for (WebsocketMessage.User user : this.exposedUsers) {
+                    this.discordBot.setVolumeMultiplier(Long.parseLong(user.id), user.volumeMultiplier);
+                }
             }
         }
     }
@@ -127,6 +129,18 @@ public class WebsocketClient extends WebSocketListener implements BotEventListen
                         logger.info("Joining vc {}", message.currentChannel);
                         this.discordBot.joinVoiceChannel(Long.parseLong(message.currentChannel));
                     }
+                    break;
+                case WebsocketMessage.UPDATE_USERS_TYPE:
+                    for (WebsocketMessage.User user : message.users) {
+                        // Right now, the only user attribute controlled by the server is the volume multiplier
+
+                        // Set the volume multiplier in our user cache
+                        this.exposedUsers.stream().filter(u -> u.id.equals(user.id)).forEach(u -> u.volumeMultiplier = user.volumeMultiplier);
+
+                        // Set the volume multiplier for the bot
+                        this.discordBot.setVolumeMultiplier(Long.parseLong(user.id), user.volumeMultiplier);
+                    }
+                    this.saveUsers();
                     break;
                 default:
                     logger.error("Unknown message type: {}", message.type);
